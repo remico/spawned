@@ -37,8 +37,8 @@ def _wrap(tag, value):
     elif tag:
         etag = _ENDCOLOR
     else:
-        tag = str(tag)
-        etag = tag
+        tag = ''
+        etag = ''
     return tag + value + etag
 
 
@@ -46,12 +46,12 @@ def _out(tag, *text, **kwargs):
     content = ' '.join(text).replace(_RESETALL, '')  # avoid multiple format resetting
     resetall = _RESETALL if not kwargs.pop('noreset', False) else ''
     s = _wrap(tag, content) + resetall
-    return print(s, **kwargs) if not kwargs.pop("noprint", False) else s
+    return print(s, **kwargs) if not kwargs.pop("str", False) else s
 
 
 def _str(f):
     def mkstr(*args, **kwargs):
-        return f(*args, **kwargs, noprint=True)
+        return f(*args, **kwargs, str=True)
     fname = f.__name__ + '_s'
     globals()[fname] = mkstr
     return f
@@ -112,7 +112,7 @@ def print_dict(self):
     # all @property fields of the instance, with their values
     property_names = [p for p in dir(T) if isinstance(getattr(T, p), property)]
     for n in property_names:
-        default_value = fail('>> ATTRIBUTE ERROR <<', noprint=True)
+        default_value = fail('>> ATTRIBUTE ERROR <<', str=True)
         print(f"{n} : {getattr(self, n, default_value)}")
 
 
