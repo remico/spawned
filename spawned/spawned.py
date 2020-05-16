@@ -190,7 +190,7 @@ class Spawned:
 
     @property
     def data(self):
-        return self._child.read()
+        return self._child.read().strip()
 
     @property
     def datalines(self):
@@ -215,23 +215,26 @@ def _cleaner(path):
 
 
 def run():
-    Spawned.enable_debug_commands()
-    Spawned.enable_logging()
-
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-c", "--clean", action="store_true",
                            help="Removes all Spawned-related stuff from the temp-storage recursively"
-                                " and kills all Spawned's background processes")
+                                " and kills all Spawned's background processes."
+                                " Needs superuser privileges (use -p option).")
     argparser.add_argument("-p", type=str, metavar="PASSWORD", help="User password")
     argparser.add_argument("--version", action="store_true", help="Show version and exit")
+    argparser.add_argument("-d", action="store_true", help="Enable debug output")
     op = argparser.parse_args()
 
     # set password before any Spawned runs
     if op.p:
         SETENV(UPASS, op.p)
 
+    if op.d:
+        Spawned.enable_debug_commands()
+        Spawned.enable_logging()
+
     if op.version:
-        Spawned.do("cat VERSION")
+        print(Spawned.do(f"cat {Path(__file__).parent.joinpath('VERSION')}"))
         exit(0)
 
     if op.clean:
@@ -245,5 +248,3 @@ if __name__ == '__main__':
 
 # register a deleter for the temp storage
 onExit(lambda: Spawned.do(_cleaner(_TMP)))
-
-_p("pexpect version: ", pexpect.__version__)

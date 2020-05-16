@@ -1,14 +1,9 @@
 import setuptools
 from spawned.spawned import Spawned
-from datetime import datetime
 
 
 with open("README.md") as f:
     long_description = f.read()
-
-
-def version():
-    return Spawned.do("cat VERSION")
 
 
 # make the distribution platform dependent
@@ -24,7 +19,7 @@ except ImportError:
 
 setuptools.setup(
     name="spawned",
-    version=version(),
+    version=Spawned.do("cat **/VERSION"),
     author="remico",
     author_email="remicollab@gmail.com",
     description="A simple python module for dealing with sub-processes",
@@ -32,6 +27,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/remico/spawned",
     packages=setuptools.find_packages(exclude=['sndbx', 'test', 'tests']),
+    package_data={'': ['VERSION']},
     py_modules=[],
     classifiers=[
         "Development Status :: 4 - Beta",
