@@ -7,3 +7,7 @@ Linux only, since it relies on `bash`, `rm` and `sudo` commands and might use sp
 ##### Requirements
 - python >= 3.8
 - latest `pexpect` version
+
+##### How to use
+- install via `python3 -m pip install git+https://github.com/remico/spawned.git`
+- use like any regular python package
