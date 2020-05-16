@@ -223,11 +223,16 @@ def run():
                            help="Removes all Spawned-related stuff from the temp-storage recursively"
                                 " and kills all Spawned's background processes")
     argparser.add_argument("-p", type=str, metavar="PASSWORD", help="User password")
+    argparser.add_argument("--version", action="store_true", help="Show version and exit")
     op = argparser.parse_args()
 
     # set password before any Spawned runs
     if op.p:
         SETENV(UPASS, op.p)
+
+    if op.version:
+        Spawned.do("cat VERSION")
+        exit(0)
 
     if op.clean:
         stuff_to_remove = Path(tempfile.gettempdir(), f'{{*{MODULE_PFX}*,*__main__*}}')
