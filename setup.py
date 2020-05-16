@@ -7,13 +7,8 @@ with open("README.md") as f:
     long_description = f.read()
 
 
-def version(release_ready=False, git=False):
-    now = datetime.now()
-    # on Linux use leading '-' in the format string to avoid zero-padding
-    final = now.strftime("%Y.%-m.%-d")
-    dev_sfx_num = int(Spawned.do('git rev-parse --short HEAD'), 16) if git else now.strftime(".%H%M%S")
-    dev_sfx = '' if release_ready else f".dev{dev_sfx_num}"
-    return final + dev_sfx
+def version():
+    return Spawned.do("cat VERSION")
 
 
 # make the distribution platform dependent
