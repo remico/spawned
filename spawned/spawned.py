@@ -221,8 +221,9 @@ def run():
                                 " and kills all Spawned's background processes."
                                 " Needs superuser privileges (use -p option).")
     argparser.add_argument("-p", type=str, metavar="PASSWORD", help="User password")
-    argparser.add_argument("--version", action="store_true", help="Show version and exit")
     argparser.add_argument("-d", action="store_true", help="Enable debug output")
+    argparser.add_argument("-v", action="store_true", help="Verbose mode")
+    argparser.add_argument("--version", action="store_true", help="Show version and exit")
     op = argparser.parse_args()
 
     # set password before any Spawned runs
@@ -231,10 +232,12 @@ def run():
 
     if op.d:
         Spawned.enable_debug_commands()
+
+    if op.v:
         Spawned.enable_logging()
 
     if op.version:
-        print(Spawned.do(f"cat {Path(__file__).parent.joinpath('VERSION')}"))
+        print(Path(__file__).parent.joinpath('VERSION').read_text().strip())
         exit(0)
 
     if op.clean:
