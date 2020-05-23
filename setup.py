@@ -41,7 +41,7 @@ setuptools.setup(
         "Topic :: System :: Shells",
     ],
     python_requires='>=3.8',
-    install_requires=['pexpect', 'setuptools'],
+    install_requires=['pexpect'],
     license='GPLv3',
     platforms=['POSIX'],
     cmdclass={'bdist_wheel': bdist_wheel},

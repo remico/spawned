@@ -5,14 +5,15 @@
 
 __author__ = 'remico <remicollab@gmail.com>'
 
-import sys, re
-import pexpect
-import tempfile
 import argparse
-from os import getenv as ENV, getpid as PID, environ as _setenv
+import pexpect
+import sys, re
+import tempfile
 from atexit import register as onExit
-from time import time_ns
+from importlib.metadata import version as app_version
+from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
+from time import time_ns
 from . import logger as log
 
 __all__ = ['Spawned', 'SpawnedSU', 'ask_user', 'onExit', 'ENV', 'SETENV']
@@ -237,7 +238,7 @@ def run():
         Spawned.enable_logging()
 
     if op.version:
-        print(Path(__file__).parent.joinpath('VERSION').read_text().strip())
+        print(app_version(__package__))
         exit(0)
 
     if op.clean:
