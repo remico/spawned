@@ -251,4 +251,4 @@ if __name__ == '__main__':
 
 
 # register a deleter for the temp storage
-onExit(lambda: Spawned.do(_cleaner(_TMP)))
+onExit(lambda: Spawned.do(f"pgrep -u root {SCRIPT_PFX}") and SpawnedSU.do(_cleaner(_TMP)) or Spawned.do(_cleaner(_TMP)))
