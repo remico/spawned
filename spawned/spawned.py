@@ -239,7 +239,7 @@ def run():
 
     if op.version:
         print(app_version(__package__))
-        exit(0)
+        sys.exit()
 
     if op.clean:
         stuff_to_remove = Path(tempfile.gettempdir(), f'{{*{MODULE_PFX}*,*__main__*}}')
