@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+#  Copyright (c) 2020, REMICO
+#
+#  The software is provided "as is", without warranty of any kind, express or
+#  implied, including but not limited to the warranties of merchantability,
+#  fitness for a particular purpose and non-infringement. In no event shall the
+#  authors or copyright holders be liable for any claim, damages or other
+#  liability, whether in an action of contract, tort or otherwise, arising from,
+#  out of or in connection with the software or the use or other dealings in the
+#  software.
 
 """ Runs shell commands in a child subprocess and communicates with them"""
-
-__author__ = 'remico <remicollab@gmail.com>'
 
 import argparse
 import pexpect
@@ -15,6 +23,11 @@ from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
 from time import time_ns
 from . import logger as log
+
+__author__ = "Roman Gladyshev"
+__email__ = "remicollab@gmail.com"
+__copyright__ = "Copyright (c) 2020, REMICO"
+__license__ = "GPLv3"
 
 __all__ = ['Spawned', 'SpawnedSU', 'ask_user', 'onExit', 'ENV', 'SETENV']
 
