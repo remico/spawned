@@ -16,7 +16,7 @@ from . import spawned
 __author__ = "Roman Gladyshev"
 __email__ = "remicollab@gmail.com"
 __copyright__ = "Copyright (c) 2020, REMICO"
-__license__ = "GPLv3"
+__license__ = "LGPLv3+"
 
 
 if __name__ == '__main__':

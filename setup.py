@@ -17,7 +17,7 @@ from spawned.spawned import Spawned
 __author__ = "Roman Gladyshev"
 __email__ = "remicollab@gmail.com"
 __copyright__ = "Copyright (c) 2020, REMICO"
-__license__ = "GPLv3"
+__license__ = "LGPLv3+"
 
 
 with open("README.md") as f:
@@ -52,7 +52,7 @@ setuptools.setup(
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         "Operating System :: POSIX :: Linux",
         "Topic :: Software Development",
         "Topic :: Software Development :: Libraries :: Python Modules",
@@ -60,7 +60,7 @@ setuptools.setup(
     ],
     python_requires='>=3.8',
     install_requires=['pexpect'],
-    license='GPLv3',
+    license='LGPLv3+',
     platforms=['POSIX'],
     cmdclass={'bdist_wheel': bdist_wheel},
 )
