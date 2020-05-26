@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+#  This file is part of "Spawned" project
+#
 #  Copyright (c) 2020, REMICO
 #
 #  The software is provided "as is", without warranty of any kind, express or

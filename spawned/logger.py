@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+#  This file is part of "Spawned" project
+#
 #  Copyright (c) 2020, REMICO
 #
 #  The software is provided "as is", without warranty of any kind, express or
@@ -11,7 +13,7 @@
 #  out of or in connection with the software or the use or other dealings in the
 #  software.
 
-""" Simple functions for logging in color """
+"""Simple functions for logging in color"""
 
 __author__ = "Roman Gladyshev"
 __email__ = "remicollab@gmail.com"
