@@ -62,6 +62,11 @@ def ask_user(prompt):
     return input(f"{tag} {prompt} ")
 
 
+def _is_upass_required():
+    output = pexpect.run("sudo -v", encoding='utf-8', events=[("password for", lambda d: True)]).strip()
+    return "password for" in output
+
+
 class Spawned:
     TO_DEFAULT = -1
     TO_INFINITE = None
@@ -70,6 +75,7 @@ class Spawned:
 
     _log_commands = False
     _log_file = None
+    _need_upass = _is_upass_required()
 
     def __init__(self, command, args=[], **kwargs):
         # note: pop extra arguments from kwargs before passing it to pexpect.spawn()
@@ -95,8 +101,8 @@ class Spawned:
         self._child = pexpect.spawn(command, args, encoding='utf-8', timeout=timeout,
                                     logfile=self.log_file, echo=False, **kwargs)
 
-        # let's cheat a bit
-        if command.startswith("sudo") and upass:
+        if command.startswith("sudo") and Spawned._need_upass:
+            assert upass, "User password isn't specified while 'sudo' is used. Exit..."
             self.interact("[sudo] password for", upass)
 
     def __enter__(self):
