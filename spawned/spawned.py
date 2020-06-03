@@ -226,11 +226,25 @@ class SpawnedSU(Spawned):
 
     @staticmethod
     def do(command, args=[], **kwargs):
-        Spawned.do(command, args=args, sudo=True, **kwargs)
+        return Spawned.do(command, args=args, sudo=True, **kwargs)
 
     @staticmethod
     def do_script(script: str, async_=False, timeout_s=Spawned.TO_INFINITE, bg=True, **kwargs):
         Spawned.do_script(script, async_, timeout_s, bg, sudo=True, **kwargs)
+
+    @staticmethod
+    def chroot(root, script):
+        filename = "/fifo_chroot.tmp"
+        fifo = f"{root}{filename}"
+
+        SpawnedSU.do(f"touch {fifo}; chmod 777 {fifo}")
+        Path(fifo).write_text(script.strip())
+
+        cmd = f'chroot {root} bash "{filename}"'
+        t = Spawned(cmd, timeout=Spawned.TO_INFINITE, sudo=True)
+        t.waitfor(Spawned.TASK_END)
+
+        SpawnedSU.do(f"rm {fifo}")
 
 
 def _cleaner(path):
