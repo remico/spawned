@@ -14,6 +14,7 @@
 #  software.
 
 from .spawned import *
+from .chroot import *
 from . import logger
 
 __author__ = "Roman Gladyshev"
