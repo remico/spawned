@@ -63,8 +63,9 @@ def ask_user(prompt):
 
 
 def _is_upass_required():
-    output = pexpect.run("sudo -v", encoding='utf-8', events=[("password for", lambda d: True)]).strip()
-    return "password for" in output
+    pattern = "password for"
+    _, status = pexpect.run("sudo -v", encoding='utf-8', events=[(pattern, lambda d: True)], withexitstatus=True)
+    return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
 
 
 class Spawned:
