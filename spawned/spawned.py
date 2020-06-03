@@ -58,7 +58,7 @@ def SETENV(key, value):
 
 
 def ask_user(prompt):
-    tag = log.warning_s('\n[' + log.blink_s(TAG) + ']')
+    tag = log.header_s('\n[' + log.blink_s("<<< ??? >>>") + ']')
     return input(f"{tag} {prompt} ")
 
 
@@ -128,7 +128,7 @@ class Spawned:
     @staticmethod
     def do(command, args=[], **kwargs):
         # to avoid bash failure, run as a script if there are special characters in the command
-        chars = r"""~!@#$%^&*()+={}\[\]|\\:;"',><?"""
+        chars = r"""~!@#$%^&*()+={}\[\]|\\:;"',><?\n"""
         is_special = re.search(f"[{chars}]", command) or (any(re.search(f"[{chars}]", arg) for arg in args))
         if is_special:
             # hack: join all the arguments to a single string command
