@@ -16,7 +16,9 @@
 """Run bash commands in a chroot environment"""
 
 from pathlib import Path
+
 from .spawned import SpawnedSU, Spawned
+from . import logger as log
 
 __author__ = "Roman Gladyshev"
 __email__ = "remicollab@gmail.com"
@@ -26,17 +28,26 @@ __license__ = "LGPLv3+"
 __all__ = ['Chroot']
 
 
+@log.tagged("[Chroot]", log.ok_blue_s)
+def _p(*text): return text
+
+
 class Chroot:
     @staticmethod
     def do(root, script):
-        file_name = "/chroot.fifo"
-        fifo_path = f"{root}{file_name}"
+        chroot_path = "/chroot.fifo"
+        real_path = f"{root}{chroot_path}"
 
         try:
-            SpawnedSU.do(f"touch {fifo_path}; chmod 777 {fifo_path}")
-            Path(fifo_path).write_text(script.strip())
-            cmd = f'chroot {root} bash "{file_name}"'
+            SpawnedSU.do(f"touch {real_path}; chmod 777 {real_path}")
+            Path(real_path).write_text(script.strip())
+            cmd = f'chroot {root} bash "{chroot_path}"'
+
+            # debugging output
+            if Spawned._log_commands:
+                _p("@ FIFO:", Path(real_path).read_text())
+
             t = Spawned(cmd, timeout=Spawned.TO_INFINITE, sudo=True)
             t.waitfor(Spawned.TASK_END)
         finally:
-            SpawnedSU.do(f"rm {fifo_path}")
+            SpawnedSU.do(f"rm {real_path}")

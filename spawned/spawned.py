@@ -82,15 +82,9 @@ class Spawned:
         # note: pop extra arguments from kwargs before passing it to pexpect.spawn()
         command = f"{'sudo ' if kwargs.pop('sudo', False) else ''}{command}"
 
-        # ## DEBUG: LOG COMMANDS ##
+        # debugging output
         if Spawned._log_commands:
-            # see the command
-            _p("@ COMMAND:", command)
-            # explore the command's content
-            if mo := re.search(fr'"(.*{FIFO})"', command):
-                with open(mo.group(1)) as f:
-                    _p("@ FIFO:", f.read())
-        # #########################
+            self._print_command(command)
 
         # user password, useful for sudo
         upass = kwargs.pop('upass', ENV(UPASS))
@@ -111,6 +105,16 @@ class Spawned:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.waitfor(Spawned.TASK_END)
+
+    @staticmethod
+    def _print_command(command):
+        # see the command
+        _p("@ COMMAND:", command)
+        # explore the command's content
+        if mo := re.search(fr'"(.*{FIFO})"', command):
+            fifo_path = Path(mo.group(1))
+            if fifo_path.exists():
+                _p("@ FIFO:", fifo_path.read_text())
 
     def waitfor(self, pattern, exact=True, timeout_s=TO_DEFAULT):
         try:
