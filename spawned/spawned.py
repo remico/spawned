@@ -94,11 +94,11 @@ class Spawned:
         # user password, useful for sudo
         upass = kwargs.pop('upass', ENV(UPASS))
 
-        if t := kwargs.get('timeout', None):
-            if t == Spawned.TO_DEFAULT:  # remove local alias, so spawn will use its own default timeout value
-                del kwargs['timeout']
-            else:
-                assert t and t > 0, "'timeout' value (in sec) must be > 0"
+        timeout = kwargs.get('timeout', None)
+        if timeout == Spawned.TO_DEFAULT:  # remove local alias, so spawn will use its own default timeout value
+            del kwargs['timeout']
+        else:
+            assert timeout is None or timeout > 0, "'timeout' value (in sec) must be > 0"
 
         self._child = pexpect.spawn(command, args, encoding='utf-8', logfile=self.log_file, echo=False, **kwargs)
 
