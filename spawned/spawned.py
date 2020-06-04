@@ -94,12 +94,13 @@ class Spawned:
         # user password, useful for sudo
         upass = kwargs.pop('upass', ENV(UPASS))
 
-        # set reasonable timeout
-        timeout = 30 if (t := kwargs.pop('timeout', 30)) == Spawned.TO_DEFAULT else t
-        assert (timeout is None) or (timeout > 0) or (timeout == Spawned.TO_DEFAULT), "Bad 'timeout' value"
+        if t := kwargs.get('timeout', None):
+            if t == Spawned.TO_DEFAULT:  # remove local alias, so spawn will use its own default timeout value
+                del kwargs['timeout']
+            else:
+                assert t and t > 0, "'timeout' value (in sec) must be > 0"
 
-        self._child = pexpect.spawn(command, args, encoding='utf-8', timeout=timeout,
-                                    logfile=self.log_file, echo=False, **kwargs)
+        self._child = pexpect.spawn(command, args, encoding='utf-8', logfile=self.log_file, echo=False, **kwargs)
 
         if command.startswith("sudo") and Spawned._need_upass:
             assert upass, "User password isn't specified while 'sudo' is used. Exit..."
@@ -121,12 +122,12 @@ class Spawned:
             if fifo_path.exists():
                 _p("@ FIFO:", fifo_path.read_text())
 
-    def waitfor(self, pattern, exact=True, timeout_s=TO_DEFAULT):
+    def waitfor(self, pattern, exact=True, timeout=TO_DEFAULT):
         try:
             if exact:
-                self._child.expect_exact(pattern, timeout_s)
+                self._child.expect_exact(pattern, timeout)
             else:
-                self._child.expect(pattern, timeout_s)
+                self._child.expect(pattern, timeout)
             return True
         except pexpect.EOF:
             _p("{%s} haven't been caught. EOF reached." % pattern)
@@ -149,7 +150,7 @@ class Spawned:
         if is_special:
             # hack: join all the arguments to a single string command
             command = f"{command} {' '.join(args)}"
-            t = Spawned.do_script(command, async_=True, timeout_s=Spawned.TO_DEFAULT, bg=False, **kwargs)
+            t = Spawned.do_script(command, async_=True, timeout=Spawned.TO_DEFAULT, bg=False, **kwargs)
         else:
             t = Spawned(command, args=args, **kwargs)
         data_string = t.data
@@ -157,13 +158,13 @@ class Spawned:
         return data_string
 
     @staticmethod
-    def do_script(script: str, async_=False, timeout_s=TO_INFINITE, bg=True, **kwargs):
+    def do_script(script: str, async_=False, timeout=TO_INFINITE, bg=True, **kwargs):
         """Runs a multiline bunch of commands in form of a bash script
 
         :param script: a multiline string, think of it as of a in regular bash script file
         :param async_: if True, waits until the script ends; returns immediately otherwise
-        :param timeout_s: if None, no timeout is set; if -1, uses default internal timeout (30 sec);
-            actual timeout in sec otherwise
+        :param timeout: if None, no timeout is set; if ``TO_DEFAULT``, uses default pexpect's timeout;
+            actual timeout (in sec) otherwise
         :param bg: if True, creates a temporary executable script and run it in background, unbounded from
             the parent process. Actual ``async_`` value isn't taken into account in this case, and treated as True,
             because after the script is created and run, the parent bash process will just exit immediately.
@@ -175,7 +176,7 @@ class Spawned:
         cmd_tpl = kwargs.pop('cmd', DO_SCRIPT_CMD_TPL(bg))
         cmd = cmd_tpl.format(fifo)
 
-        t = Spawned(cmd, timeout=timeout_s, ignore_sighup=bg, **kwargs)
+        t = Spawned(cmd, timeout=timeout, ignore_sighup=bg, **kwargs)
         if not async_:
             t.waitfor(Spawned.TASK_END)
         return t
@@ -233,8 +234,8 @@ class SpawnedSU(Spawned):
         return Spawned.do(command, args=args, sudo=True, **kwargs)
 
     @staticmethod
-    def do_script(script: str, async_=False, timeout_s=Spawned.TO_INFINITE, bg=True, **kwargs):
-        Spawned.do_script(script, async_, timeout_s, bg, sudo=True, **kwargs)
+    def do_script(script: str, async_=False, timeout=Spawned.TO_INFINITE, bg=True, **kwargs):
+        Spawned.do_script(script, async_, timeout, bg, sudo=True, **kwargs)
 
 
 def _cleaner(path):

@@ -40,6 +40,6 @@ class Chroot:
 
         try:
             SpawnedSU.do(f"mkdir -p {chroot_tmp} && mount --bind {_TMP} {chroot_tmp}")
-            SpawnedSU.do_script(script, timeout_s=SpawnedSU.TO_INFINITE, bg=False, cmd=chroot_cmd)
+            SpawnedSU.do_script(script, bg=False, cmd=chroot_cmd)
         finally:
             SpawnedSU.do(f"umount {chroot_tmp} && rm -r {chroot_tmp}")
