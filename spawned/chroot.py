@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from .spawned import SpawnedSU, Spawned
+from .spawned import SpawnedSU, _TMP
 from . import logger as log
 
 __author__ = "Roman Gladyshev"
@@ -35,19 +35,11 @@ def _p(*text): return text
 class Chroot:
     @staticmethod
     def do(root, script):
-        chroot_path = "/chroot.fifo"
-        real_path = f"{root}{chroot_path}"
+        chroot_tmp = Path(root, str(_TMP)[1:])  # slice leading '/' to be able to concatenate
+        chroot_cmd = f'chroot {root} bash "{{}}"'
 
         try:
-            SpawnedSU.do(f"touch {real_path}; chmod 777 {real_path}")
-            Path(real_path).write_text(script.strip())
-            cmd = f'chroot {root} bash "{chroot_path}"'
-
-            # debugging output
-            if Spawned._log_commands:
-                _p("@ FIFO:", Path(real_path).read_text())
-
-            t = Spawned(cmd, timeout=Spawned.TO_INFINITE, sudo=True)
-            t.waitfor(Spawned.TASK_END)
+            SpawnedSU.do(f"mkdir -p {chroot_tmp} && mount --bind {_TMP} {chroot_tmp}")
+            SpawnedSU.do_script(script, timeout_s=SpawnedSU.TO_INFINITE, bg=False, cmd=chroot_cmd)
         finally:
-            SpawnedSU.do(f"rm {real_path}")
+            SpawnedSU.do(f"umount {chroot_tmp} && rm -r {chroot_tmp}")

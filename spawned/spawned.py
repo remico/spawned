@@ -68,6 +68,11 @@ def _is_upass_required():
     return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
 
 
+def DO_SCRIPT_CMD_TPL(nohup: bool):
+    # f'bash -c "nohup {script_file} > /dev/null 2>&1 &"'  # nohup alternative
+    return 'bash -c "{} &"' if nohup else 'bash "{}"'
+
+
 class Spawned:
     TO_DEFAULT = -1
     TO_INFINITE = None
@@ -165,15 +170,10 @@ class Spawned:
             Note: always use ``bg=False`` if you need to process the script's output data.
         :return: a :class:`Spawned` instance. Returned value is quite useless if ``bg`` is True.
         """
-        script = script.strip()
 
-        if bg:
-            script_file = Spawned._file_it(script)
-            cmd = f'/bin/bash -c "{script_file} &"'
-            # cmd = f'/bin/bash -c "nohup {script_file} > /dev/null 2>&1 &"'  # alternative
-        else:
-            fifo = Spawned._file_it(script, new=False)
-            cmd = f'/bin/bash "{fifo}"'
+        fifo = Spawned._file_it(script.strip(), new=bg)
+        cmd_tpl = kwargs.pop('cmd', DO_SCRIPT_CMD_TPL(bg))
+        cmd = cmd_tpl.format(fifo)
 
         t = Spawned(cmd, timeout=timeout_s, ignore_sighup=bg, **kwargs)
         if not async_:
@@ -191,7 +191,7 @@ class Spawned:
     @staticmethod
     def _file_it(content, new=True):
         _TMP.mkdir(exist_ok=True)
-        script_file = _TMP.joinpath(FIFO if not new else f'{SCRIPT_PFX}{time_ns()}')
+        script_file = _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}' if new else FIFO)
         with script_file.open('w') as f:
             if new:
                 f.write(f"#!/bin/bash\n\n{content}")
