@@ -26,6 +26,7 @@ from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
 from time import time_ns
 
+from .exception import *
 from . import logger as log
 
 __author__ = "Roman Gladyshev"
@@ -41,7 +42,7 @@ PIPE = "pipe"
 SCRIPT_PFX = "script_"
 MODULE_PFX = "spawned_"
 TAG = "[Spawned]"
-
+TPL_REQ_UPASS = fr"password for {ENV('USER')}:"
 
 _TMP = Path(tempfile.gettempdir(), f'{__name__}_{PID()}')  # Spawned creates all its stuff there
 
@@ -55,8 +56,7 @@ def _pn(*text): return text
 
 
 def _need_upass():
-    pattern = "password for"
-    _, status = pexpect.run("sudo -v", encoding='utf-8', events=[(pattern, lambda d: True)], withexitstatus=True)
+    _, status = pexpect.run("sudo -v", encoding='utf-8', events=[(TPL_REQ_UPASS, lambda d: True)], withexitstatus=True)
     return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
 
 
@@ -105,8 +105,8 @@ class Spawned:
         if Spawned._log_commands:
             self._print_command(command)
 
-        # user password, useful for sudo
-        upass = kwargs.pop('upass', ENV(UPASS))
+        su = command.startswith("sudo") and Spawned._need_upass
+        assert not su or ENV(UPASS), "User password isn't specified while 'sudo' is used. Exit..."
 
         timeout = kwargs.get('timeout', None)
         if timeout == Spawned.TO_DEFAULT:  # remove local alias, so spawn will use its own default timeout value
@@ -116,15 +116,51 @@ class Spawned:
 
         self._child = pexpect.spawn(command, args, encoding='utf-8', logfile=self.log_file, echo=False, **kwargs)
 
-        if command.startswith("sudo") and Spawned._need_upass:
-            assert upass, "User password isn't specified while 'sudo' is used. Exit..."
-            self.interact("[sudo] password for", upass)
+        if su:
+            self.interact(TPL_REQ_UPASS, ENV(UPASS))
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.waitfor(Spawned.TASK_END)
+
+    def waitfor(self, pattern, exact=True, timeout=TO_DEFAULT):
+        """The program will be terminated if nothing from ``pattern`` is caught in the child's output.
+        Thus the method can usually be used in 2 use cases:
+
+            - like a runtime assertion check:
+                Spawned.waitfor(<a_mandatory_output>)
+
+            - wait for the child process end:
+                Spawned.waitfor(Spawned.TASK_END)
+        """
+        try:
+            if self._child.isalive():
+                if exact:
+                    self._child.expect_exact(pattern, timeout)
+                else:
+                    self._child.expect(pattern, timeout)
+                return True
+
+        except pexpect.EOF:
+            _pn(log.warning_s("Nothing from [%s] has been caught. Child EOF." % pattern))
+            if ask_user("Abort application? [y/n]:").lower() == 'y':
+                sys.exit("\nABORTED BY USER")
+
+        except pexpect.TIMEOUT:
+            _pn(log.fail_s("Child TIMEOUT"))
+            self._child.close()
+            if ask_user("Abort application? [y/n]:").lower() == 'y':
+                sys.exit("\nABORTED BY USER")
+
+    def send(self, pattern):
+        if self._child.isalive():
+            self._child.sendline(pattern)
+
+    def interact(self, waitfor_pattern, send_pattern, exact=True):
+        if self.waitfor(waitfor_pattern, exact=exact):
+            self.send(send_pattern)
 
     @staticmethod
     def _print_command(command):
@@ -136,26 +172,6 @@ class Spawned:
             if pipe_path.exists():
                 _p("@ PIPE:", pipe_path.read_text())
 
-    def waitfor(self, pattern, exact=True, timeout=TO_DEFAULT):
-        try:
-            if exact:
-                self._child.expect_exact(pattern, timeout)
-            else:
-                self._child.expect(pattern, timeout)
-            return True
-        except pexpect.EOF:
-            _p("{%s} haven't been caught. EOF reached." % pattern)
-            sys.exit("\nTERMINATED")
-        except pexpect.TIMEOUT:
-            _pn(log.warning_s("TIMEOUT"))
-
-    def send(self, pattern):
-        self._child.sendline(pattern)
-
-    def interact(self, waitfor_pattern, send_pattern, exact=True):
-        if self.waitfor(waitfor_pattern, exact):
-            self.send(send_pattern)
-
     @staticmethod
     def do(command, args=[], **kwargs):
         # to avoid bash failure, run as a script if there are special characters in the command
@@ -164,7 +180,8 @@ class Spawned:
         if is_special:
             # hack: join all the arguments to a single string command
             command = f"{command} {' '.join(args)}"
-            t = Spawned.do_script(command, async_=True, timeout=Spawned.TO_DEFAULT, bg=False, **kwargs)
+            timeout = kwargs.pop("timeout", Spawned.TO_DEFAULT)
+            t = Spawned.do_script(command, async_=True, timeout=timeout, bg=False, **kwargs)
         else:
             t = Spawned(command, args=args, **kwargs)
         data_string = t.data
@@ -224,11 +241,23 @@ class Spawned:
 
     @property
     def data(self):
-        return self._child.read().strip()
+        return self._child.read().strip() if self._child.isalive() else ''
 
     @property
     def datalines(self):
-        return self._child.readlines()
+        return self._child.readlines() if self._child.isalive() else []
+
+    @property
+    def exit_status(self):
+        """Call child.close() before calling this.
+        Or call this if:
+            - child.isalive() returns False
+            - EOF is reached
+        Otherwise actual child exit status is undefined (None).
+        """
+        reason = ExitReason.NORMAL if self._child.signalstatus is None else ExitReason.TERMINATED
+        code = self._child.exitstatus if reason == ExitReason.NORMAL else self._child.signalstatus
+        return reason, code
 
 
 class SpawnedSU(Spawned):
