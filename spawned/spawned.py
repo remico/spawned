@@ -19,11 +19,13 @@ import argparse
 import pexpect
 import sys, re
 import tempfile
+
 from atexit import register as onExit
 from importlib.metadata import version as app_version
 from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
 from time import time_ns
+
 from . import logger as log
 
 __author__ = "Roman Gladyshev"
@@ -31,11 +33,11 @@ __email__ = "remicollab@gmail.com"
 __copyright__ = "Copyright (c) 2020, REMICO"
 __license__ = "LGPLv3+"
 
-__all__ = ['Spawned', 'SpawnedSU', 'ask_user', 'onExit', 'ENV', 'SETENV']
+__all__ = ['Spawned', 'SpawnedSU', 'ask_user', 'onExit', 'ENV', 'SETENV', 'create_py_script']
 
 # internal constants
 UPASS = "UPASS"
-FIFO = "fifo"
+PIPE = "pipe"
 SCRIPT_PFX = "script_"
 MODULE_PFX = "spawned_"
 TAG = "[Spawned]"
@@ -52,9 +54,24 @@ def _p(*text): return text
 def _pn(*text): return text
 
 
+def _need_upass():
+    pattern = "password for"
+    _, status = pexpect.run("sudo -v", encoding='utf-8', events=[(pattern, lambda d: True)], withexitstatus=True)
+    return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
+
+
+def _cleaner(path):
+    return f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P"
+
+
 def SETENV(key, value):
     assert isinstance(value, str), "SETENV: environment variable must be of string type"
     _setenv[key] = value
+
+
+def TPL_CMD_DO_SCRIPT(nohup: bool):
+    # f'bash -c "nohup {script_file} > /dev/null 2>&1 &"'  # nohup alternative
+    return 'bash -c "{} &"' if nohup else 'bash "{}"'
 
 
 def ask_user(prompt):
@@ -62,15 +79,12 @@ def ask_user(prompt):
     return input(f"{tag} {prompt} ")
 
 
-def _is_upass_required():
-    pattern = "password for"
-    _, status = pexpect.run("sudo -v", encoding='utf-8', events=[(pattern, lambda d: True)], withexitstatus=True)
-    return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
-
-
-def DO_SCRIPT_CMD_TPL(nohup: bool):
-    # f'bash -c "nohup {script_file} > /dev/null 2>&1 &"'  # nohup alternative
-    return 'bash -c "{} &"' if nohup else 'bash "{}"'
+def create_py_script(script: str):
+    _TMP.mkdir(exist_ok=True)
+    script_file = _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}.py')
+    with script_file.open('w') as f:
+        f.write(f"#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\n{script.strip()}")
+    return script_file
 
 
 class Spawned:
@@ -81,7 +95,7 @@ class Spawned:
 
     _log_commands = False
     _log_file = None
-    _need_upass = _is_upass_required()
+    _need_upass = _need_upass()
 
     def __init__(self, command, args=[], **kwargs):
         # note: pop extra arguments from kwargs before passing it to pexpect.spawn()
@@ -117,10 +131,10 @@ class Spawned:
         # see the command
         _p("@ COMMAND:", command)
         # explore the command's content
-        if mo := re.search(fr'"(.*{FIFO})"', command):
-            fifo_path = Path(mo.group(1))
-            if fifo_path.exists():
-                _p("@ FIFO:", fifo_path.read_text())
+        if mo := re.search(fr'"(.*{PIPE})"', command):
+            pipe_path = Path(mo.group(1))
+            if pipe_path.exists():
+                _p("@ PIPE:", pipe_path.read_text())
 
     def waitfor(self, pattern, exact=True, timeout=TO_DEFAULT):
         try:
@@ -172,9 +186,9 @@ class Spawned:
         :return: a :class:`Spawned` instance. Returned value is quite useless if ``bg`` is True.
         """
 
-        fifo = Spawned._file_it(script.strip(), new=bg)
-        cmd_tpl = kwargs.pop('cmd', DO_SCRIPT_CMD_TPL(bg))
-        cmd = cmd_tpl.format(fifo)
+        pipe_file = Spawned._file_it(script.strip(), new=bg)
+        cmd_tpl = kwargs.pop('cmd', TPL_CMD_DO_SCRIPT(bg))
+        cmd = cmd_tpl.format(pipe_file)
 
         t = Spawned(cmd, timeout=timeout, ignore_sighup=bg, **kwargs)
         if not async_:
@@ -182,17 +196,9 @@ class Spawned:
         return t
 
     @staticmethod
-    def make_script_py(script: str):
-        _TMP.mkdir(exist_ok=True)
-        script_file = _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}.py')
-        with script_file.open('w') as f:
-            f.write(f"#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\n{script.strip()}")
-        return script_file
-
-    @staticmethod
     def _file_it(content, new=True):
         _TMP.mkdir(exist_ok=True)
-        script_file = _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}' if new else FIFO)
+        script_file = _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}' if new else PIPE)
         with script_file.open('w') as f:
             if new:
                 f.write(f"#!/bin/bash\n\n{content}")
@@ -236,10 +242,6 @@ class SpawnedSU(Spawned):
     @staticmethod
     def do_script(script: str, async_=False, timeout=Spawned.TO_INFINITE, bg=True, **kwargs):
         Spawned.do_script(script, async_, timeout, bg, sudo=True, **kwargs)
-
-
-def _cleaner(path):
-    return f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P"
 
 
 def run():
