@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from .spawned import SpawnedSU, _TMP
+from .spawned import SpawnedSU, Spawned, _TMP
 from . import logger as log
 
 __author__ = "Roman Gladyshev"
@@ -25,7 +25,7 @@ __email__ = "remicollab@gmail.com"
 __copyright__ = "Copyright (c) 2020, REMICO"
 __license__ = "LGPLv3+"
 
-__all__ = ['Chroot']
+__all__ = ['Chroot', 'ChrootContext']
 
 
 @log.tagged("[Chroot]", log.ok_blue_s)
@@ -33,13 +33,31 @@ def _p(*text): return text
 
 
 class Chroot:
-    @staticmethod
-    def do(root, script):
-        chroot_tmp = Path(root, str(_TMP)[1:])  # slice leading '/' to be able to concatenate
-        chroot_cmd = f'chroot {root} bash "{{}}"'
+    def __init__(self, root):
+        self.chroot_tmp = Path(root, str(_TMP)[1:])  # slice leading '/' to be able to concatenate
+        self.chroot_cmd = f'chroot {root} bash "{{}}"'
 
+    def _before(self):
+        SpawnedSU.do(f"mkdir -p {self.chroot_tmp} && mount --bind {_TMP} {self.chroot_tmp}")
+
+    def _after(self):
+        SpawnedSU.do(f"umount {self.chroot_tmp} && rm -r {self.chroot_tmp}")
+
+    def do(self, script):
         try:
-            SpawnedSU.do(f"mkdir -p {chroot_tmp} && mount --bind {_TMP} {chroot_tmp}")
-            SpawnedSU.do_script(script, bg=False, cmd=chroot_cmd)
+            self._before()
+            SpawnedSU.do_script(script, bg=False, cmd=self.chroot_cmd)
         finally:
-            SpawnedSU.do(f"umount {chroot_tmp} && rm -r {chroot_tmp}")
+            self._after()
+
+
+class ChrootContext(Chroot):
+    def __enter__(self):
+        self._before()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._after()
+
+    def do(self, script) -> Spawned:
+        return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd)

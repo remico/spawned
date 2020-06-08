@@ -270,7 +270,7 @@ class SpawnedSU(Spawned):
 
     @staticmethod
     def do_script(script: str, async_=False, timeout=Spawned.TO_INFINITE, bg=True, **kwargs):
-        Spawned.do_script(script, async_, timeout, bg, sudo=True, **kwargs)
+        return Spawned.do_script(script, async_, timeout, bg, sudo=True, **kwargs)
 
 
 def run():
