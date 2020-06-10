@@ -60,4 +60,11 @@ class ChrootContext(Chroot):
         self._after()
 
     def do(self, script) -> Spawned:
+        """Run script and wait until it ends"""
+        return SpawnedSU.do_script(script, async_=False, bg=False, cmd=self.chroot_cmd)
+
+    def doi(self, script) -> Spawned:
+        """Run script and continue execution.
+        Returned value can be used as context manager.
+        """
         return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd)
