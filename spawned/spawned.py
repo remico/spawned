@@ -144,7 +144,7 @@ class Spawned:
                 return True
 
         except pexpect.EOF:
-            _pn(log.warning_s("Nothing from [%s] has been caught. Child EOF." % pattern))
+            _pn(log.fail_s("Child unexpected EOF. Were expected one of: [%s]." % pattern))
             if ask_user("Abort application? [y/n]:").lower() == 'y':
                 sys.exit("\nABORTED BY USER")
 
