@@ -34,8 +34,12 @@ def _p(*text): return text
 
 class Chroot:
     def __init__(self, root):
+        self.root = root
         self.chroot_tmp = Path(root, str(_TMP)[1:])  # slice leading '/' to be able to concatenate
-        self.chroot_cmd = f'chroot {root} bash "{{}}"'
+
+    def chroot_cmd(self, user=None):
+        user_opt = f"--userspec={user}:{user}" if user else ""
+        return f'chroot {user_opt} {self.root} bash "{{}}"'
 
     def _before(self):
         SpawnedSU.do(f"mkdir -p {self.chroot_tmp} && mount --bind {_TMP} {self.chroot_tmp}")
@@ -46,7 +50,7 @@ class Chroot:
     def do(self, script, user=None):
         try:
             self._before()
-            SpawnedSU.do_script(script, bg=False, cmd=self.chroot_cmd, user=user)
+            SpawnedSU.do_script(script, bg=False, cmd=self.chroot_cmd(user))
         finally:
             self._after()
 
@@ -61,10 +65,10 @@ class ChrootContext(Chroot):
 
     def do(self, script, user=None) -> Spawned:
         """Run script and wait until it ends"""
-        return SpawnedSU.do_script(script, async_=False, bg=False, cmd=self.chroot_cmd, user=user)
+        return SpawnedSU.do_script(script, async_=False, bg=False, cmd=self.chroot_cmd(user))
 
     def doi(self, script, user=None) -> Spawned:
         """Run script and continue execution.
         Returned value can be used as context manager.
         """
-        return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd, user=user)
+        return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd(user))
