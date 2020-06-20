@@ -99,7 +99,10 @@ class Spawned:
 
     def __init__(self, command, args=[], **kwargs):
         # note: pop extra arguments from kwargs before passing it to pexpect.spawn()
-        command = f"{'sudo ' if kwargs.pop('sudo', False) else ''}{command}"
+        if kwargs.pop('sudo', False):
+            user_opt = f'-u {user}' if (user := kwargs.pop('user', None)) else ''
+            command = f"sudo {user_opt} {command}"
+
 
         # debugging output
         if Spawned._log_commands:
@@ -144,7 +147,7 @@ class Spawned:
                 return True
 
         except pexpect.EOF:
-            _pn(log.fail_s("Child unexpected EOF. Were expected one of: [%s]." % pattern))
+            _pn(log.fail_s("Child unexpected EOF. Was expected one of: [%s]." % pattern))
             if ask_user("Abort application? [y/n]:").lower() == 'y':
                 sys.exit("\nABORTED BY USER")
 

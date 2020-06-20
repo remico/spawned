@@ -43,10 +43,10 @@ class Chroot:
     def _after(self):
         SpawnedSU.do(f"umount {self.chroot_tmp} && rm -r {self.chroot_tmp}")
 
-    def do(self, script):
+    def do(self, script, user=None):
         try:
             self._before()
-            SpawnedSU.do_script(script, bg=False, cmd=self.chroot_cmd)
+            SpawnedSU.do_script(script, bg=False, cmd=self.chroot_cmd, user=user)
         finally:
             self._after()
 
@@ -59,12 +59,12 @@ class ChrootContext(Chroot):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._after()
 
-    def do(self, script) -> Spawned:
+    def do(self, script, user=None) -> Spawned:
         """Run script and wait until it ends"""
-        return SpawnedSU.do_script(script, async_=False, bg=False, cmd=self.chroot_cmd)
+        return SpawnedSU.do_script(script, async_=False, bg=False, cmd=self.chroot_cmd, user=user)
 
-    def doi(self, script) -> Spawned:
+    def doi(self, script, user=None) -> Spawned:
         """Run script and continue execution.
         Returned value can be used as context manager.
         """
-        return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd)
+        return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd, user=user)
