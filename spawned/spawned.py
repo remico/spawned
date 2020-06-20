@@ -103,7 +103,6 @@ class Spawned:
             user_opt = f'-u {user}' if (user := kwargs.pop('user', None)) else ''
             command = f"sudo {user_opt} {command}"
 
-
         # debugging output
         if Spawned._log_commands:
             self._print_command(command)
