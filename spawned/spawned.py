@@ -139,11 +139,8 @@ class Spawned:
         """
         try:
             if self._child.isalive():
-                if exact:
-                    self._child.expect_exact(pattern, timeout)
-                else:
-                    self._child.expect(pattern, timeout)
-                return True
+                expect = self._child.expect_exact if exact else self._child.expect
+                return expect(pattern, timeout)
 
         except pexpect.EOF:
             _pn(log.fail_s("Child unexpected EOF. Was expected one of: [%s]." % pattern))
@@ -161,8 +158,20 @@ class Spawned:
             self._child.sendline(pattern)
 
     def interact(self, waitfor_pattern, send_pattern, exact=True):
-        if self.waitfor(waitfor_pattern, exact=exact):
-            self.send(send_pattern)
+        idx = self.waitfor(waitfor_pattern, exact=exact)
+        if idx is not None:
+            assert_message = f"No valid response defined for expected index {idx}"
+            if isinstance(send_pattern, list):
+                assert len(send_pattern) >= idx + 1, assert_message
+                to_send = send_pattern[idx]
+            else:
+                assert idx == 0, assert_message
+                to_send = send_pattern
+
+            if to_send == Spawned.TASK_END:
+                self._child.terminate(force=True)
+            elif to_send is not None:
+                self.send(to_send)
 
     @staticmethod
     def _print_command(command):
@@ -252,11 +261,10 @@ class Spawned:
     @property
     def exit_status(self):
         """Call child.close() before calling this.
-        Or call this if:
-            - child.isalive() returns False
-            - EOF is reached
-        Otherwise actual child exit status is undefined (None).
+        Alternatively, call this after EOF is reached, i.e. after Spawned.waitfor(TASK_END).
+        Otherwise the exit reason is always 0 and actual exit status is undefined (None).
         """
+        self._child.isalive()  # update exit status from child's internals
         reason = ExitReason.NORMAL if self._child.signalstatus is None else ExitReason.TERMINATED
         code = self._child.exitstatus if reason == ExitReason.NORMAL else self._child.signalstatus
         return reason, code
