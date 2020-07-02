@@ -60,8 +60,8 @@ def _need_upass():
     return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
 
 
-def _cleaner(path):
-    return f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P"
+def _cmd_clean(path):
+    return f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P; echo $?"
 
 
 def SETENV(key, value):
@@ -172,6 +172,7 @@ class Spawned:
                 self._child.terminate(force=True)
             elif to_send is not None:
                 self.send(to_send)
+        return idx
 
     @staticmethod
     def _print_command(command):
@@ -311,7 +312,7 @@ def run():
 
     if op.clean:
         stuff_to_remove = Path(tempfile.gettempdir(), f'{{*{MODULE_PFX}*,*__main__*}}')
-        SpawnedSU.do(_cleaner(stuff_to_remove))
+        SpawnedSU.do(_cmd_clean(stuff_to_remove))
 
 
 if __name__ == '__main__':
@@ -319,4 +320,6 @@ if __name__ == '__main__':
 
 
 # register a deleter for the temp storage
-onExit(lambda: Spawned.do(f"pgrep -u root {SCRIPT_PFX}") and SpawnedSU.do(_cleaner(_TMP)) or Spawned.do(_cleaner(_TMP)))
+onExit(lambda:
+       Spawned.do(f"pgrep -u root {SCRIPT_PFX}") and SpawnedSU.do(_cmd_clean(_TMP))
+       or Spawned.do(_cmd_clean(_TMP)))
