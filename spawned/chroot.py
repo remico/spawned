@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from .spawned import SpawnedSU, Spawned, _TMP
+from .spawned import SpawnedSU, Spawned, _TMP, onExit
 from . import logger as log
 
 __author__ = "Roman Gladyshev"
@@ -72,3 +72,12 @@ class ChrootContext(Chroot):
         Returned value can be used as context manager.
         """
         return SpawnedSU.do_script(script, async_=True, bg=False, cmd=self.chroot_cmd(user))
+
+
+def _cleaner():
+    mounts = Spawned(f"bash -c 'mount | grep \"{_TMP}\" | cut -d\" \" -f3'").datalines
+    for mp in mounts:
+        SpawnedSU.do(f"umount {mp}")
+
+
+onExit(_cleaner)
