@@ -15,13 +15,11 @@
 
 """Runs shell commands in a child subprocess and communicates with them"""
 
-import argparse
 import pexpect
 import sys, re
 import tempfile
 
 from atexit import register as onExit
-from importlib.metadata import version as app_version
 from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
 from time import time_ns
@@ -60,8 +58,10 @@ def _need_upass():
     return status  # non-zero status => pattern is found, so the child process is aborted => upass is required
 
 
-def _cmd_clean(path):
-    return f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P; echo $?"
+def _cleaner(path, force=False):
+    cmd = f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P; echo $?"
+    S = SpawnedSU if force or Spawned.do(f"pgrep -u root {SCRIPT_PFX}") else Spawned
+    S.do(cmd)
 
 
 def SETENV(key, value):
@@ -284,42 +284,5 @@ class SpawnedSU(Spawned):
         return Spawned.do_script(script, async_, timeout, bg, sudo=True, **kwargs)
 
 
-def run():
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("-c", "--clean", action="store_true",
-                           help="Removes all Spawned-related stuff from the temp-storage recursively"
-                                " and kills all Spawned's background processes."
-                                " Needs superuser privileges (use -p option).")
-    argparser.add_argument("-p", type=str, metavar="PASSWORD", help="User password")
-    argparser.add_argument("-d", action="store_true", help="Enable debug output")
-    argparser.add_argument("-v", action="store_true", help="Verbose mode")
-    argparser.add_argument("--version", action="store_true", help="Show version and exit")
-    op = argparser.parse_args()
-
-    # set password before any Spawned runs
-    if op.p:
-        SETENV(UPASS, op.p)
-
-    if op.d:
-        Spawned.enable_debug_commands()
-
-    if op.v:
-        Spawned.enable_logging()
-
-    if op.version:
-        print(app_version(__package__))
-        sys.exit()
-
-    if op.clean:
-        stuff_to_remove = Path(tempfile.gettempdir(), f'{{*{MODULE_PFX}*,*__main__*}}')
-        SpawnedSU.do(_cmd_clean(stuff_to_remove))
-
-
-if __name__ == '__main__':
-    run()
-
-
 # register a deleter for the temp storage
-onExit(lambda:
-       Spawned.do(f"pgrep -u root {SCRIPT_PFX}") and SpawnedSU.do(_cmd_clean(_TMP))
-       or Spawned.do(_cmd_clean(_TMP)))
+onExit(lambda: _cleaner(_TMP))
