@@ -42,7 +42,7 @@ MODULE_PFX = "spawned_"
 TAG = "[Spawned]"
 TPL_REQ_UPASS = fr"password for {ENV('USER')}:"
 
-_TMP = Path(tempfile.gettempdir(), f'{__name__}_{PID()}')  # Spawned creates all its stuff there
+_TMP = Path(tempfile.gettempdir(), f"{__name__.split('.')[-1]}_{PID()}")  # Spawned creates all its stuff there
 
 
 @log.tagged(TAG, log.ok_blue_s)
