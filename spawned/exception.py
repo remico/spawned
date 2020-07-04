@@ -34,10 +34,10 @@ class ExitReason:
 class SpawnedChildError(Exception):
     """Raised when the child process ends abnormally"""
 
-    def __init__(self, reason, code):
-        super().__init__(reason, code)
-        self.reason = reason
+    def __init__(self, code, reason):
+        super().__init__(code, reason)
         self.code = code
+        self.reason = reason
 
     def __str__(self):
-        return f"{type(self).__name__}: <REASON: {self.reason}, CODE: {self.code}>"
+        return f"{type(self).__name__}: <CODE: {self.code}>, REASON: {self.reason}"

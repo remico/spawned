@@ -185,20 +185,22 @@ class Spawned:
                 _p("@ PIPE:", pipe_path.read_text())
 
     @staticmethod
-    def do(command, args=[], **kwargs):
+    def do(command, with_status=False, **kwargs):
         # to avoid bash failure, run as a script if there are special characters in the command
         chars = r"""~!@#$%^&*()+={}\[\]|\\:;"',><?\n"""
-        is_special = re.search(f"[{chars}]", command) or (any(re.search(f"[{chars}]", arg) for arg in args))
+        is_special = re.search(f"[{chars}]", command)
+
         if is_special:
-            # hack: join all the arguments to a single string command
-            command = f"{command} {' '.join(args)}"
             timeout = kwargs.pop("timeout", Spawned.TO_DEFAULT)
             t = Spawned.do_script(command, async_=True, timeout=timeout, bg=False, **kwargs)
         else:
-            t = Spawned(command, args=args, **kwargs)
-        data_string = t.data
-        t.waitfor(Spawned.TASK_END)
-        return data_string
+            t = Spawned(command, **kwargs)
+
+        if with_status:
+            t.waitfor(Spawned.TASK_END)
+            return t.exit_status
+        else:
+            return t.data
 
     @staticmethod
     def do_script(script: str, async_=False, timeout=TO_INFINITE, bg=True, **kwargs):
@@ -268,7 +270,7 @@ class Spawned:
         self._child.isalive()  # update exit status from child's internals
         reason = ExitReason.NORMAL if self._child.signalstatus is None else ExitReason.TERMINATED
         code = self._child.exitstatus if reason == ExitReason.NORMAL else self._child.signalstatus
-        return reason, code
+        return code, reason
 
 
 class SpawnedSU(Spawned):
@@ -276,8 +278,8 @@ class SpawnedSU(Spawned):
         super().__init__(*args, sudo=True, **kwargs)
 
     @staticmethod
-    def do(command, args=[], **kwargs):
-        return Spawned.do(command, args=args, sudo=True, **kwargs)
+    def do(command, with_status=False, **kwargs):
+        return Spawned.do(command, with_status, sudo=True, **kwargs)
 
     @staticmethod
     def do_script(script: str, async_=False, timeout=Spawned.TO_INFINITE, bg=True, **kwargs):
