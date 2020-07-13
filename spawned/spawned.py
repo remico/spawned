@@ -59,8 +59,8 @@ def _need_upass():
 
 
 def _cleaner(path, force=False):
-    cmd = f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P; echo $?"
-    S = SpawnedSU if force or Spawned.do(f"pgrep -u root {SCRIPT_PFX}") else Spawned
+    cmd = f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P"
+    S = SpawnedSU if force or Spawned.do(f"pgrep -u root {SCRIPT_PFX}", with_status=True)[0] == 0 else Spawned
     S.do(cmd)
 
 
