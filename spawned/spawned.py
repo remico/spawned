@@ -20,6 +20,7 @@ import sys, re
 import tempfile
 
 from atexit import register as onExit
+from functools import singledispatchmethod
 from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
 from time import time_ns
@@ -153,21 +154,40 @@ class Spawned:
             if ask_user("Abort application? [y/n]:").lower() == 'y':
                 sys.exit("\nABORTED BY USER")
 
-    def send(self, pattern):
+    def send(self, data):
         if self._child.isalive():
-            self._child.sendline(pattern)
+            self._child.sendline(data)
 
-    def interact(self, waitfor_pattern, send_pattern, exact=True):
+    @singledispatchmethod
+    def interact(self, waitfor_pattern, tosend_data, exact=True):
+        """
+        Waits for any value from ``waitfor_pattern`` and responds with ``tosend_data``.
+
+        :param waitfor_pattern: could be a string or a list of strings
+        :param tosend_data: a string to send to the child
+        :param exact: should the ``waitfor_pattern`` be treated as a regex or an exact string
+        :return: index of the matched pattern; 0 if ``waitfor_pattern`` is a string
+        """
         idx = self.waitfor(waitfor_pattern, exact=exact)
         if idx is not None:
-            assert_message = f"No valid response defined for expected index {idx}"
-            if isinstance(send_pattern, list):
-                assert len(send_pattern) >= idx + 1, assert_message
-                to_send = send_pattern[idx]
-            else:
-                assert idx == 0, assert_message
-                to_send = send_pattern
+            if tosend_data == Spawned.TASK_END:
+                self._child.terminate(force=True)
+            elif tosend_data is not None:
+                self.send(tosend_data)
+        return idx
 
+    @interact.register(tuple)
+    def _(self, *waitfor_tosend_tuples, exact=True):
+        """
+        Overloaded version of method ``interact()``. ``waitfor_tosend_tuples`` is a list of tuples.
+        The method can be invoked as following:
+
+            Spawned.interact((waitfor, tosend), (waitfor, tosend), ..., exact=True)
+        """
+        waitfor_list = [tupl[0] for tupl in waitfor_tosend_tuples]
+        idx = self.waitfor(waitfor_list, exact=exact)
+        if idx is not None:
+            to_send = waitfor_tosend_tuples[idx][1]
             if to_send == Spawned.TASK_END:
                 self._child.terminate(force=True)
             elif to_send is not None:
