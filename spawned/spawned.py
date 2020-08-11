@@ -174,6 +174,21 @@ class Spawned:
                 self.send(to_send)
         return idx
 
+    def interact_user(self):
+        """This gives control of the child process to the human at the keyboard.
+        When the user types the 'escape character' (chr(29), i.e. ``Ctrl - ]``) this method returns None.
+        The 'escape character' will not be transmitted.
+        """
+        # prevent:
+        # - data duplication in the user's terminal window
+        # - app crash: since interact() method needs `bytes` buffer while spawn() method uses `unicode` by default
+        if self._child.logfile is sys.stdout:
+            self._child.logfile = None
+
+        self._child.interact()
+        # restore previous buffer after interactive input ends
+        self._child.logfile = self._log_file
+
     @staticmethod
     def _print_command(command):
         # see the command
@@ -228,8 +243,7 @@ class Spawned:
 
     @staticmethod
     def _file_it(content, new=True):
-        _TMP.mkdir(exist_ok=True)
-        script_file = _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}' if new else PIPE)
+        script_file = Spawned.tmp_file_path(new)
         with script_file.open('w') as f:
             if new:
                 f.write(f"#!/bin/bash\n\n{content}")
@@ -237,6 +251,11 @@ class Spawned:
             else:
                 f.write(content)
         return script_file
+
+    @staticmethod
+    def tmp_file_path(new=True):
+        _TMP.mkdir(exist_ok=True)
+        return _TMP.joinpath(f'{SCRIPT_PFX}{time_ns()}' if new else PIPE)
 
     @staticmethod
     def enable_debug_commands(enable=True):
