@@ -17,6 +17,6 @@ and might use specific *bash* syntax internally.
 - install the module:
 ```
 $ sudo apt install git python3-pip  # install git and pip3
-$ pip3 install git+https://github.com/remico/spawned.git
+$ pip3 install --extra-index-url=https://remico.github.io/pypi spawned
 ```
 - use just like any other python module
