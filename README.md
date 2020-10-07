@@ -1,6 +1,8 @@
 # Spawned
 A simple python module for dealing with sub-processes. Based on [pexpect](https://github.com/pexpect/pexpect).
 
+![Release on remico/pypi](https://github.com/remico/spawned/workflows/Release%20on%20remico/pypi/badge.svg)
+
 ###### Note 
 :information_source: The module is Linux only, since it relies on the following commands:
 

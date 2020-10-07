@@ -1,0 +1,63 @@
+# This workflow will actualize available releases in remico/pypi repository
+name: Release on remico/pypi
+
+on:
+  release:
+    types: [released, deleted]
+
+  workflow_dispatch:
+    inputs:
+#      commit_sha:
+#        description: hash of the tagged commit
+#        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      manual_run_for_develop: ${{ contains(github.ref, 'develop') && github.event_name == 'workflow_dispatch' }}
+      scripts_path: ./.github/scripts
+      PYPI_PASS: ${{ secrets.PYPI_TOKEN }}
+      REPO_OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.repository }}  # owner/repo pair
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: "gather data & make index.html"
+        id: preparations
+        run: |
+          rm -rf pypi
+          mkdir -p pypi
+          git clone --depth 1 https://$PYPI_PASS@github.com/$REPO_OWNER/pypi.git pypi
+          python3 $scripts_path/python-publish.py
+
+      - name: "push index.html to remico/pypi"
+        if: ${{ steps.preparations.outputs.READY_TO_PUSH }}
+#        shell: python3 {0}
+        run: |
+          REPO_NAME=${GITHUB_REPOSITORY##*/}
+          TAG=${GITHUB_REF##*/}
+          cd pypi
+          git config user.name '${{ github.repository_owner }}'
+          git config user.email '${{ steps.preparations.outputs.REPO_OWNER_EMAIL }}'
+          git commit -am "[${{ github.event_name }}] $REPO_NAME '$TAG'" && git push || echo "NO CHANGES IN INDEX"
+          git log --oneline -5
+
+#      - name: "[on workflow_dispatch] Publish to remico/pypi"
+##        if: ${{ github.event_name == 'workflow_dispatch' }}
+#        if: ${{ false }}
+#        run: |
+#          echo "@ Workspace: ${{ github.workspace }}"
+#          echo "@ Commit's VERSION: $(cat spawned/VERSION)"
+#          echo
+#          echo "@ Getting releases..."
+#          RELEASES="$(curl -H "Accept: application/vnd.github.v3+json" \
+#            https://api.github.com/repos/remico/spawned/releases | \
+#            grep -oP "(?<=tag_name).*" | grep -oP "[\w\.]+")"
+#
+#      - name: "[on release] Publish to remico/pypi"
+##        if: ${{ github.event_name == 'release' }}
+#        if: ${{ false }}
+#        run: |
+#          echo "Custom action: deploy release $GITHUB_SHA \
+#          :: $GITHUB_REF to Remico's PyPI: '$(git tag --points-at $GITHUB_REF)'"
