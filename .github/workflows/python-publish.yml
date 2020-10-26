@@ -38,10 +38,13 @@ jobs:
           REPO_NAME=${GITHUB_REPOSITORY##*/}
           TAG=${GITHUB_REF##*/}
           cd pypi
-          git config user.name '${{ github.repository_owner }}'
-          git config user.email '${{ steps.preparations.outputs.REPO_OWNER_EMAIL }}'
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "$REPO_OWNER_EMAIL"
           git commit -am "[${{ github.event_name }}] $REPO_NAME '$TAG'" && git push || echo "NO CHANGES IN INDEX"
+          echo
+          echo "git log:"
           git log --oneline -5
+
 
 #      - name: "[on workflow_dispatch] Publish to remico/pypi"
 ##        if: ${{ github.event_name == 'workflow_dispatch' }}

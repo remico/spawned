@@ -45,8 +45,21 @@ tpl_release = string.Template("""\
 """)
 
 
+# usage: ${{ steps.<step-id>.outputs.<key> }}
 def set_output(key, val):
     print(f"::set-output name={key}::{val}")
+
+
+# usage: according to the shell type (e.g. in bash - $KEY)
+def set_output_env(key, val):
+    with open(getenv('GITHUB_ENV'), "a") as env_file:
+        print(f"{key}={val}", file=env_file)
+
+
+# usage: according to the shell type (e.g. in bash - $KEY)
+def set_output_env_multi(key, lines, delimiter='EOF'):
+    with open(getenv('GITHUB_ENV'), "a") as env_file:
+        print(f"{key}<<{delimiter}\n{lines}\n{delimiter}", file=env_file)
 
 
 api_server = getenv('GITHUB_API_URL')
@@ -63,7 +76,7 @@ s = requests.Session()
 # get repo owner's email
 api_url = f"{api_server}/users/{repo_owner}"
 user_json = s.get(api_url, auth=HTTPBasicAuth(repo_owner, repo_pass)).json()
-set_output("REPO_OWNER_EMAIL", user_json['email'])
+set_output_env("REPO_OWNER_EMAIL", user_json['email'])
 
 # get releases in json format using REST API
 api_url = f"{api_server}/repos/{repo}/releases"
