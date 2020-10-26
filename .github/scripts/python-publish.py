@@ -25,23 +25,30 @@ from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
 
-tpl_page = string.Template("""\
+api_server = getenv('GITHUB_API_URL')
+repo_server = getenv('GITHUB_SERVER_URL')
+repo = getenv('REPO')  # owner/repo pair
+repo_owner = repo.split('/')[0]
+repo_name = repo.split('/')[1]
+repo_pass = getenv('PYPI_PASS')
+
+tpl_page = string.Template(f"""\
 <!DOCTYPE html>
 <html>
 <head>
-  <title>spawned</title>
+  <title>{repo_name}</title>
 </head>
 <body>
-  <!-- <a href="git+https://github.com/remico/spawned.git@develop#egg=spawned-1!0.dev0" data-requires-python="&gt;=3.8">spawned-develop</a> -->
-  <a href="git+https://github.com/remico/spawned.git@master#egg=spawned-1!0a" data-requires-python="&gt;=3.8">spawned-0</a>
-  <!-- <a href="spawned-2020.8.11.dev1417-cp38-cp38-linux_x86_64.whl" data-requires-python="&gt;=3.8">spawned</a> -->
+  <!-- <a href="git+https://github.com/remico/{repo_name}.git@develop#egg={repo_name}-1!0.dev0" data-requires-python="&gt;=3.8">{repo_name}-develop</a> -->
+  <a href="git+https://github.com/remico/{repo_name}.git@master#egg={repo_name}-1!0a" data-requires-python="&gt;=3.8">{repo_name}-0</a>
+  <!-- <a href="{repo_name}-2020.8.11.dev1417-cp38-cp38-linux_x86_64.whl" data-requires-python="&gt;=3.8">{repo_name}</a> -->
   $releases
 </body>
 </html>
 """)
 
-tpl_release = string.Template("""\
-<a href="git+https://github.com/remico/spawned.git@$version#egg=spawned-$version" data-requires-python="&gt;=3.8">spawned-$version</a>
+tpl_release = string.Template(f"""\
+<a href="git+https://github.com/remico/{repo_name}.git@$version#egg={repo_name}-$version" data-requires-python="&gt;=3.8">{repo_name}-$version</a>
 """)
 
 
@@ -61,15 +68,6 @@ def set_output_env_multi(key, lines, delimiter='EOF'):
     with open(getenv('GITHUB_ENV'), "a") as env_file:
         print(f"{key}<<{delimiter}\n{lines}\n{delimiter}", file=env_file)
 
-
-api_server = getenv('GITHUB_API_URL')
-repo_server = getenv('GITHUB_SERVER_URL')
-repo = getenv('REPO')  # owner/repo pair
-repo_owner = repo.split('/')[0]
-repo_name = repo.split('/')[1]
-repo_pass = getenv('PYPI_PASS')
-
-manual_run_for_develop = 'true' == getenv('manual_run_for_develop', False).lower()
 
 s = requests.Session()
 
@@ -91,7 +89,7 @@ print(releases)
 release_entries = [tpl_release.substitute(version=release) for release in releases]
 releases_block = ''.join(release_entries).strip()
 html_page = tpl_page.substitute(releases=releases_block)
-Path("pypi/spawned/index.html").write_text(html_page)
+Path(f"pypi/{repo_name}/index.html").write_text(html_page)
 
 print("GITHUB_REF:", getenv('GITHUB_REF'))
 set_output("READY_TO_PUSH", True)
