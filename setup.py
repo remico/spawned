@@ -13,8 +13,10 @@
 #  out of or in connection with the software or the use or other dealings in the
 #  software.
 
+import platform
+from pathlib import Path
+
 import setuptools
-from spawned.spawned import Spawned
 
 __author__ = "Roman Gladyshev"
 __email__ = "remicollab@gmail.com"
@@ -22,8 +24,16 @@ __copyright__ = "Copyright (c) 2020, REMICO"
 __license__ = "LGPLv3+"
 
 
-with open("README.md") as f:
-    long_description = f.read()
+if 'linux' not in platform.system().lower():
+    raise OSError('The package requires GNU Linux. Aborting installation...')
+
+
+def long_description():
+    return Path("README.md").read_text()
+
+
+def version():
+    return Path("spawned/VERSION").read_text()
 
 
 # make the distribution platform dependent
@@ -39,11 +49,11 @@ except ImportError:
 
 setuptools.setup(
     name="spawned",
-    version=Spawned.do("cat **/VERSION"),
+    version=version(),
     author="remico",
     author_email="remicollab@gmail.com",
     description="A simple python module for dealing with sub-processes",
-    long_description=long_description,
+    long_description=long_description(),
     long_description_content_type="text/markdown",
     url="https://github.com/remico/spawned",
     packages=setuptools.find_packages(exclude=['sndbx', 'test', 'tests']),
