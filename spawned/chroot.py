@@ -3,15 +3,14 @@
 #
 #  This file is part of "Spawned" project
 #
-#  Copyright (c) 2020, REMICO
+#  Author: Roman Gladyshev <remicollab@gmail.com>
+#  License: GNU Lesser General Public License v3.0 or later
 #
-#  The software is provided "as is", without warranty of any kind, express or
-#  implied, including but not limited to the warranties of merchantability,
-#  fitness for a particular purpose and non-infringement. In no event shall the
-#  authors or copyright holders be liable for any claim, damages or other
-#  liability, whether in an action of contract, tort or otherwise, arising from,
-#  out of or in connection with the software or the use or other dealings in the
-#  software.
+#  SPDX-License-Identifier: LGPL-3.0+
+#  License text is available in the LICENSE file and online:
+#  http://www.gnu.org/licenses/lgpl-3.0-standalone.html
+#
+#  Copyright (c) 2020 remico
 
 """Run bash commands in a chroot environment"""
 
@@ -19,11 +18,6 @@ from pathlib import Path
 
 from .spawned import SpawnedSU, Spawned, _TMP, MODULE_PFX, onExit
 from . import logger as log
-
-__author__ = "Roman Gladyshev"
-__email__ = "remicollab@gmail.com"
-__copyright__ = "Copyright (c) 2020, REMICO"
-__license__ = "LGPLv3+"
 
 __all__ = ['Chroot', 'ChrootContext']
 

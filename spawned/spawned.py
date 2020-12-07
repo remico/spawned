@@ -3,15 +3,14 @@
 #
 #  This file is part of "Spawned" project
 #
-#  Copyright (c) 2020, REMICO
+#  Author: Roman Gladyshev <remicollab@gmail.com>
+#  License: GNU Lesser General Public License v3.0 or later
 #
-#  The software is provided "as is", without warranty of any kind, express or
-#  implied, including but not limited to the warranties of merchantability,
-#  fitness for a particular purpose and non-infringement. In no event shall the
-#  authors or copyright holders be liable for any claim, damages or other
-#  liability, whether in an action of contract, tort or otherwise, arising from,
-#  out of or in connection with the software or the use or other dealings in the
-#  software.
+#  SPDX-License-Identifier: LGPL-3.0+
+#  License text is available in the LICENSE file and online:
+#  http://www.gnu.org/licenses/lgpl-3.0-standalone.html
+#
+#  Copyright (c) 2020 remico
 
 """Runs shell commands in a child subprocess and communicates with them"""
 
@@ -28,11 +27,6 @@ from time import time_ns
 from .exception import *
 from . import logger as log
 
-__author__ = "Roman Gladyshev"
-__email__ = "remicollab@gmail.com"
-__copyright__ = "Copyright (c) 2020, REMICO"
-__license__ = "LGPLv3+"
-
 __all__ = ['Spawned', 'SpawnedSU', 'ask_user', 'onExit', 'ENV', 'SETENV', 'create_py_script']
 
 # internal constants
@@ -43,7 +37,7 @@ MODULE_PFX = "spawned_"
 TAG = "[Spawned]"
 TPL_REQ_UPASS = fr"password for {ENV('USER')}:"
 
-_TMP = Path(tempfile.gettempdir(), f"{__name__.split('.')[-1]}_{PID()}")  # Spawned creates all its stuff there
+_TMP = Path(tempfile.gettempdir(), f"{__name__}_{PID()}")  # Spawned creates all its stuff there
 
 
 @log.tagged(TAG, log.ok_blue_s)
@@ -133,7 +127,7 @@ class Spawned:
         Thus the method can usually be used in 2 use cases:
 
             - like a runtime assertion check:
-                Spawned.waitfor(<a_mandatory_output>)
+                Spawned.waitfor(<mandatory_output>)
 
             - wait for the child process end:
                 Spawned.waitfor(Spawned.TASK_END)
@@ -165,7 +159,7 @@ class Spawned:
 
         :param waitfor_pattern: could be a string or a list of strings
         :param tosend_data: a string to send to the child
-        :param exact: should the ``waitfor_pattern`` be treated as a regex or an exact string
+        :param exact: should the ``waitfor_pattern`` be treated as a regex or exact string
         :return: index of the matched pattern; 0 if ``waitfor_pattern`` is a string
         """
         idx = self.waitfor(waitfor_pattern, exact=exact)
