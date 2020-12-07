@@ -13,21 +13,11 @@
 #  Copyright (c) 2020 remico
 
 import platform
-from pathlib import Path
-
 import setuptools
 
 
 if 'linux' not in platform.system().lower():
-    raise OSError('The package requires GNU Linux. Aborting installation...')
-
-
-def long_description():
-    return Path("README.md").read_text()
-
-
-def version():
-    return Path("spawned/VERSION").read_text()
+    raise OSError('Platform must be GNU Linux. Aborting installation...')
 
 
 # make the distribution platform dependent
@@ -37,36 +27,14 @@ try:
         def finalize_options(self):
             _bdist_wheel.finalize_options(self)
             self.root_is_pure = False
+            # self.plat_name_supplied = True
+            # self.plat_name = "manylinux1_x86_64"
 except ImportError:
     bdist_wheel = None
 
 
 setuptools.setup(
-    name="spawned",
-    version=version(),
-    author="remico",
-    author_email="remicollab@gmail.com",
-    description="A simple python module for dealing with sub-processes",
-    long_description=long_description(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/remico/spawned",
-    packages=setuptools.find_packages(exclude=['sndbx', 'test', 'tests']),
-    package_data={'': ['VERSION']},
-    py_modules=[],
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-        "Operating System :: POSIX :: Linux",
-        "Topic :: Software Development",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: System :: Shells",
-    ],
-    python_requires='>=3.8',
-    install_requires=['pexpect'],
-    license='LGPLv3+',
-    platforms=['POSIX'],
-    cmdclass={'bdist_wheel': bdist_wheel},
+    cmdclass={
+        'bdist_wheel': bdist_wheel
+    }
 )
