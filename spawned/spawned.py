@@ -15,6 +15,7 @@
 """Runs shell commands in a child subprocess and communicates with them"""
 
 import pexpect
+import psutil
 import sys, re
 import tempfile
 
@@ -22,6 +23,7 @@ from atexit import register as onExit
 from functools import singledispatchmethod
 from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
+from shutil import rmtree
 from time import time_ns
 
 from .exception import *
@@ -54,9 +56,22 @@ def _need_upass():
 
 
 def _cleaner(path, force=False):
-    cmd = f"rm -rf {path}; P=$(pgrep {SCRIPT_PFX}) && kill -9 $P"
-    S = SpawnedSU if force or Spawned.do(f"pgrep -u root {SCRIPT_PFX}", with_status=True)[0] == 0 else Spawned
-    S.do(cmd)
+    rmtree(path, ignore_errors=True)
+
+    # kill all children subprocesses
+    def kill(p):
+        try:
+            p.kill()
+        except psutil.AccessDenied:
+            pexpect.run(f"sudo kill -9 {p.pid}", encoding='utf-8', events=[(TPL_REQ_UPASS, f"{ENV(UPASS)}\n")])
+        except psutil.NoSuchProcess:
+            pass
+
+    for p in psutil.process_iter(['name']):
+        if SCRIPT_PFX in p.info['name']:
+            for child in p.children(recursive=True):
+                kill(child)
+            kill(p)
 
 
 def SETENV(key, value):
