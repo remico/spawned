@@ -98,8 +98,8 @@ def create_py_script(script: str):
 
 
 class Spawned:
-    TO_DEFAULT = -1
-    TO_INFINITE = None
+    TIMEOUT_DEFAULT = -1
+    TIMEOUT_INFINITE = None
     TASK_END = pexpect.EOF
     ANSWER_DEFAULT = ""
 
@@ -121,7 +121,7 @@ class Spawned:
         assert not su or ENV(UPASS), "User password isn't specified while 'sudo' is used. Exit..."
 
         timeout = kwargs.get('timeout', None)
-        if timeout == Spawned.TO_DEFAULT:  # remove local alias, so spawn will use its own default timeout value
+        if timeout == Spawned.TIMEOUT_DEFAULT:  # remove local alias, so spawn will use its own default timeout value
             del kwargs['timeout']
         else:
             assert timeout is None or timeout > 0, "'timeout' value (in sec) must be > 0"
@@ -137,7 +137,7 @@ class Spawned:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.waitfor(Spawned.TASK_END)
 
-    def waitfor(self, pattern, exact=True, timeout=TO_DEFAULT):
+    def waitfor(self, pattern, exact=True, timeout=TIMEOUT_DEFAULT):
         """The program will be terminated if nothing from ``pattern`` is caught in the child's output.
         Thus the method can usually be used in 2 use cases:
 
@@ -175,7 +175,7 @@ class Spawned:
         :param waitfor_pattern: could be a string or a list of strings
         :param tosend_data: a string to send to the child
         :param exact: should the ``waitfor_pattern`` be treated as a regex or exact string
-        :return: index of the matched pattern; 0 if ``waitfor_pattern`` is a string
+        :return: index of the matched pattern; always 0 if ``waitfor_pattern`` is a string
         """
         idx = self.waitfor(waitfor_pattern, exact=exact)
         if idx is not None:
@@ -235,7 +235,7 @@ class Spawned:
         is_special = re.search(f"[{chars}]", command)
 
         if is_special:
-            timeout = kwargs.pop("timeout", Spawned.TO_DEFAULT)
+            timeout = kwargs.pop("timeout", Spawned.TIMEOUT_DEFAULT)
             t = Spawned.do_script(command, async_=True, timeout=timeout, bg=False, **kwargs)
         else:
             t = Spawned(command, **kwargs)
@@ -247,12 +247,12 @@ class Spawned:
             return t.data
 
     @staticmethod
-    def do_script(script: str, async_=False, timeout=TO_INFINITE, bg=True, **kwargs):
+    def do_script(script: str, async_=False, timeout=TIMEOUT_INFINITE, bg=True, **kwargs):
         """Runs a multiline bunch of commands in form of a bash script
 
         :param script: a multiline string, think of it as of a in regular bash script file
         :param async_: if True, waits until the script ends; returns immediately otherwise
-        :param timeout: if None, no timeout is set; if ``TO_DEFAULT``, uses default pexpect's timeout;
+        :param timeout: if None, no timeout is set; if ``TIMEOUT_DEFAULT``, uses default pexpect's timeout;
             actual timeout (in sec) otherwise
         :param bg: if True, creates a temporary executable script and run it in background, unbounded from
             the parent process. Actual ``async_`` value isn't taken into account in this case, and treated as True,
@@ -330,7 +330,7 @@ class SpawnedSU(Spawned):
         return Spawned.do(command, with_status, sudo=True, **kwargs)
 
     @staticmethod
-    def do_script(script: str, async_=False, timeout=Spawned.TO_INFINITE, bg=True, **kwargs):
+    def do_script(script: str, async_=False, timeout=Spawned.TIMEOUT_INFINITE, bg=True, **kwargs):
         return Spawned.do_script(script, async_, timeout, bg, sudo=True, **kwargs)
 
 
