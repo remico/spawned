@@ -20,6 +20,7 @@ import sys, re
 import tempfile
 
 from atexit import register as onExit
+from dataclasses import dataclass
 from functools import singledispatchmethod
 from os import getenv as ENV, getpid as PID, environ as _setenv
 from pathlib import Path
@@ -95,6 +96,14 @@ def create_py_script(script: str):
     with script_file.open('w') as f:
         f.write(f"#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\n{script.strip()}")
     return script_file
+
+
+@dataclass
+class ExitStatus:
+    exit_code: int
+    exit_reason: int
+    success: bool
+    data: str
 
 
 class Spawned:
@@ -241,8 +250,14 @@ class Spawned:
             t = Spawned(command, **kwargs)
 
         if with_status:
-            t.waitfor(Spawned.TASK_END)
-            return t.exit_status
+            # wait for the task ends by reading the output
+            data = t.data
+            # get exit status
+            t._child.isalive()  # update exit status from child's internals
+            reason = ExitReason.NORMAL if t._child.signalstatus is None else ExitReason.TERMINATED
+            code = t._child.exitstatus if reason == ExitReason.NORMAL else t._child.signalstatus
+            success = reason == ExitReason.NORMAL and code == 0
+            return ExitStatus(code, reason, success, data)
         else:
             return t.data
 
