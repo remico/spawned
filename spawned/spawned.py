@@ -217,6 +217,7 @@ class Spawned:
         When the user types the 'escape character' (chr(29), i.e. ``Ctrl - ]``) this method returns None.
         The 'escape character' will not be transmitted.
         """
+
         # prevent:
         # - data duplication in the user's terminal window
         # - app crash: since interact() method needs `bytes` buffer while spawn() method uses `unicode` by default
@@ -224,6 +225,7 @@ class Spawned:
             self._child.logfile = None
 
         self._child.interact()
+
         # restore previous buffer after interactive input ends
         self._child.logfile = self._log_file
 
@@ -238,7 +240,7 @@ class Spawned:
                 _p("@ PIPE:", pipe_path.read_text())
 
     @staticmethod
-    def do(command, with_status=False, **kwargs):
+    def do(command, with_status=False, list_=False, **kwargs):
         # to avoid bash failure, run as a script if there are special characters in the command
         chars = r"""~!@#$%^&*()+={}\[\]|\\:;"',><?\n"""
         is_special = re.search(f"[{chars}]", command)
@@ -251,7 +253,7 @@ class Spawned:
 
         if with_status:
             # wait for the task ends by reading the output
-            data = t.data
+            data = t.datalines if list_ else t.data
             # get exit status
             t._child.isalive()  # update exit status from child's internals
             reason = ExitReason.NORMAL if t._child.signalstatus is None else ExitReason.TERMINATED
@@ -259,7 +261,7 @@ class Spawned:
             success = reason == ExitReason.NORMAL and code == 0
             return ExitStatus(code, reason, success, data)
         else:
-            return t.data
+            return t.datalines if list_ else t.data
 
     @staticmethod
     def do_script(script: str, async_=False, timeout=TIMEOUT_INFINITE, bg=True, **kwargs):
@@ -341,8 +343,8 @@ class SpawnedSU(Spawned):
         super().__init__(*args, sudo=True, **kwargs)
 
     @staticmethod
-    def do(command, with_status=False, **kwargs):
-        return Spawned.do(command, with_status, sudo=True, **kwargs)
+    def do(command, with_status=False, list_=False, **kwargs):
+        return Spawned.do(command, with_status, list_, sudo=True, **kwargs)
 
     @staticmethod
     def do_script(script: str, async_=False, timeout=Spawned.TIMEOUT_INFINITE, bg=True, **kwargs):

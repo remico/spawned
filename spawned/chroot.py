@@ -70,10 +70,8 @@ class ChrootContext(Chroot):
 
 def _cleaner(force=False):
     mp_tpl = MODULE_PFX if force else _TMP
-    mounts = Spawned(f"bash -c 'mount | grep \"{mp_tpl}\" | cut -d\" \" -f3'").datalines
-    if mounts:
-        mounts = ' '.join(mounts).replace('\n', '').replace('\r', '')
-        SpawnedSU.do(f"umount {mounts}")
+    if mounts := Spawned.do(f'mount | grep "{mp_tpl}" | cut -d" " -f3', list_=True):
+        SpawnedSU.do(f'umount {" ".join(mounts)}')
 
 
 onExit(_cleaner)
